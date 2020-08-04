@@ -30,7 +30,7 @@ namespace ComicOrganizer
             //(Aya Shachou) Chikokuma Renko ~Shikomareta Chikan Kekkai~ [Touhou Project]
             new Regex(@"^[(\[](.[^\])]*)[)\]] (.[^(\[]*)"),
         };
-        DirectoryInfo[] subDirectoryNames;
+        DirectoryInfo[] SubDirectoryNames;
         List<string> Errors = new List<string>();
 
         public ComicOrganizer()
@@ -62,7 +62,8 @@ namespace ComicOrganizer
             try
             {
                 DirectoryInfo MainDirectory = new DirectoryInfo(MainPath);
-                foreach (DirectoryInfo subDirectory in MainDirectory.GetDirectories())
+                SubDirectoryNames = MainDirectory.GetDirectories();
+                foreach (DirectoryInfo subDirectory in SubDirectoryNames)
                 {
                     //If it isn't a directory with files already organized, organize it
                     if (!new Regex(@"^\(Artist\).*|^\(Group\).*").IsMatch(subDirectory.Name))
@@ -127,7 +128,7 @@ namespace ComicOrganizer
             }
             Division();
             Console.WriteLine("Task finished!");
-            WarningMessage("Success Rate: {0}", ((1 - (Errors.Count / ((subDirectoryNames.Length==0)?1:subDirectoryNames.Length))) * 100) + "");
+            WarningMessage("Success Rate: {0}", ((1 - (Errors.Count / ((SubDirectoryNames.Length==0)?1:SubDirectoryNames.Length))) * 100) + "");
             WarningMessage("TOTAL ERROR COUNT: {0}", Errors.Count+"");
 
             foreach (var err in Errors)
@@ -151,7 +152,7 @@ namespace ComicOrganizer
         private (string group, string artist, string comicName) GetComicInfo(int[] idsGroup, GroupCollection gc)
         {
             string artist = gc[idsGroup[idsGroup.Length - 2]]?.Value;
-            string group = gc[1].Value.Equals(artist) ? null : $"(Group) {gc[1].Value}";
+            string group = gc[1].Value.Equals(artist) ? null : gc[1].Value;
             string comicName = gc[idsGroup.Last()].Value;
 
             return (group, artist, comicName);
@@ -159,7 +160,7 @@ namespace ComicOrganizer
 
         private string CreatePath(string group, string artist, string comicName)
         {
-            return string.Join("/", MainPath, group, $"(Artist) {artist}", comicName);
+            return string.Join("/", MainPath, $"(Group) {group}", $"(Artist) {artist}", comicName);
         }
 
         public void Division()
