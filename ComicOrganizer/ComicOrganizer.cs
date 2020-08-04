@@ -36,7 +36,7 @@ namespace ComicOrganizer
         public ComicOrganizer()
         {
             Titulo();
-            Console.Write("Do you want to log all files while copying? (y/n)");
+            Console.Write("Do you want to log all files while copying? (y/n): ");
             string a = Console.ReadLine();
 
             LogFiles = a.Equals("y");
@@ -50,9 +50,11 @@ namespace ComicOrganizer
 
         public void Titulo()
         {
+            Division();
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine(string.Join("\n", Title));
             Console.ForegroundColor = ConsoleColor.White;
+            Division();
         }
 
         public void StartProgram()
@@ -60,59 +62,55 @@ namespace ComicOrganizer
             try
             {
                 DirectoryInfo MainDirectory = new DirectoryInfo(MainPath);
-                subDirectoryNames = MainDirectory.GetDirectories();
-                foreach (DirectoryInfo subDirectory in subDirectoryNames)
+                foreach (DirectoryInfo subDirectory in MainDirectory.GetDirectories())
                 {
-                    for (int i = 0; i < Regices.Count(); i++)
+                    //If it isn't a directory with files already organized, organize it
+                    if (!new Regex(@"^\(Artist\).*|^\(Group\).*").IsMatch(subDirectory.Name))
                     {
-                        Regex rx = Regices[i];
-                        if (rx.IsMatch(subDirectory.Name))
+                        for (int i = 0; i < Regices.Count(); i++)
                         {
-                            int[] idsGroup = rx.GetGroupNumbers();
-                            GroupCollection groups = rx.Match(subDirectory.Name).Groups;
-                            string newPath = CreatePath(idsGroup, groups);
-
-                            SubDivision();
-
-                            Environment.CurrentDirectory = "/";
-                            try
+                            Regex rx = Regices[i];
+                            if (rx.IsMatch(subDirectory.Name))
                             {
-                                if (!Directory.Exists(newPath))
-                                {
-                                    Directory.CreateDirectory(newPath);
-                                }
+                                int[] idsGroup = rx.GetGroupNumbers();
+                                (string group, string artist, string name) = GetComicInfo(idsGroup, rx.Match(subDirectory.Name).Groups);
+                                string newPath = CreatePath(group, artist, name);
 
-                                foreach (FileInfo image in subDirectory.GetFiles())
+                                SubDivision();
+
+                                Environment.CurrentDirectory = "/";
+                                try
                                 {
-                                    image.CopyTo(Path.Combine(newPath, image.Name), true);
-                                    image.Delete();
-                                    if (LogFiles)
+                                    if (!Directory.Exists(newPath))
                                     {
-                                        Console.ForegroundColor = ConsoleColor.DarkGray;
-                                        Console.WriteLine(@"Copying {0}\{1}", newPath, image.Name);
-                                        Console.ForegroundColor = ConsoleColor.White;
+                                        Directory.CreateDirectory(newPath);
                                     }
+
+                                    foreach (FileInfo image in subDirectory.GetFiles())
+                                    {
+                                        MoveImage(image, newPath);
+                                    }
+                                    subDirectory.Refresh();
+                                    subDirectory.Delete(true);
+                                    SuccessMessage("{0}: -> {1}", subDirectory.FullName, newPath);
                                 }
-                                subDirectory.Refresh();
-                                subDirectory.Delete(true);
-                                SuccessMessage("{0}: -> {1}", subDirectory.FullName, newPath);
+                                catch (DirectoryNotFoundException ex)
+                                {
+                                    ErrorMessage("Please report this error!");
+                                    ErrorMessage(ex.Message);
+                                    ErrorMessage(ex.StackTrace);
+                                    Errors.Add($"ERROR ON: {subDirectory}");
+
+                                }
+                                catch (Exception ex)
+                                {
+                                    ErrorMessage("Please report this error!");
+                                    ErrorMessage(ex.Message);
+                                    ErrorMessage(ex.StackTrace);
+                                    Errors.Add($"ERROR ON: {subDirectory}");
+                                }
+                                break;
                             }
-                            catch (DirectoryNotFoundException ex)
-                            {
-                                ErrorMessage("Please report this error!");
-                                ErrorMessage(ex.Message);
-                                ErrorMessage(ex.StackTrace);
-                                Errors.Add($"ERROR ON: {subDirectory}");
-                                
-                            }
-                            catch (Exception ex)
-                            {
-                                ErrorMessage("Please report this error!");
-                                ErrorMessage(ex.Message);
-                                ErrorMessage(ex.StackTrace);
-                                Errors.Add($"ERROR ON: {subDirectory}");
-                            }
-                            break;
                         }
                     }
                 }
@@ -138,16 +136,30 @@ namespace ComicOrganizer
             }
         }
 
-        private string CreatePath(int[] idsGroup, GroupCollection groups)
+        private void MoveImage(FileInfo image, string newPath)
         {
-            string p = MainPath;
+            image.CopyTo(Path.Combine(newPath, image.Name), true);
+            image.Delete();
+            if (LogFiles)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.WriteLine(@"Copying {0}\{1}", newPath, image.Name);
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+        }
 
-            string artist = groups[idsGroup[idsGroup.Length - 2]]?.Value;
-            string group = groups[1].Value.Equals(artist) ? null : $"(Group) {groups[1].Value}";
-            string comicName = groups[idsGroup.Last()].Value;
+        private (string group, string artist, string comicName) GetComicInfo(int[] idsGroup, GroupCollection gc)
+        {
+            string artist = gc[idsGroup[idsGroup.Length - 2]]?.Value;
+            string group = gc[1].Value.Equals(artist) ? null : $"(Group) {gc[1].Value}";
+            string comicName = gc[idsGroup.Last()].Value;
 
-            p = string.Join("/", p, group, $"(Artist) {artist}", comicName);
-            return p;
+            return (group, artist, comicName);
+        }
+
+        private string CreatePath(string group, string artist, string comicName)
+        {
+            return string.Join("/", MainPath, group, $"(Artist) {artist}", comicName);
         }
 
         public void Division()
