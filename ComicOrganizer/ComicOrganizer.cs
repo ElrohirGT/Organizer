@@ -50,7 +50,7 @@ namespace ComicOrganizer
             {
                 Console.Write("What's the min number of comics for making a group/artist? (Recommended is 2): ");
                 answer = Console.ReadLine();
-                if (int.TryParse(answer, out int minNumber))
+                if (int.TryParse(answer, out int minNumber) && minNumber > 0)
                 {
                     MinNumberOfComics = minNumber;
                     break;
@@ -58,7 +58,7 @@ namespace ComicOrganizer
                 ErrorMessage("Please write a valid number!");
             }
 
-            Console.Write("Do you want to organize previous comics too? (y/n):");
+            Console.Write("Do you want to organize previous comics too? (y/n): ");
             answer = Console.ReadLine();
             IncludePrevious = answer.Equals("y");
 
@@ -174,6 +174,7 @@ namespace ComicOrganizer
             {
                 ErrorMessage(err);
             }
+            Environment.Exit(0);
         }
 
         private void GetPreviousToMainPath()
