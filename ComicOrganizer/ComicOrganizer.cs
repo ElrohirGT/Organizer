@@ -32,7 +32,6 @@ namespace ComicOrganizer
             //(Aya Shachou) Chikokuma Renko ~Shikomareta Chikan Kekkai~ [Touhou Project]
             new Regex(@"^[(\[](.[^\])]*)[)\]] (.[^(\[]*)"),
         };
-        DirectoryInfo[] SubDirectoryNames;
         List<string> Errors = new List<string>();
         Dictionary<string, List<Tuple<DirectoryInfo, string>>> ComicGroups = new Dictionary<string, List<Tuple<DirectoryInfo, string>>>();
 
@@ -87,8 +86,7 @@ namespace ComicOrganizer
                 {
                     GetPreviousToMainPath();
                 }
-                SubDirectoryNames = MainDirectory.GetDirectories();
-                foreach (DirectoryInfo subDirectory in SubDirectoryNames)
+                foreach (DirectoryInfo subDirectory in MainDirectory.EnumerateDirectories())
                 {
                     //If it isn't a directory with files already organized, organize it
                     if (!new Regex(@"^\(Artist\).*|^\(Group\).*").IsMatch(subDirectory.Name))
@@ -174,7 +172,6 @@ namespace ComicOrganizer
             {
                 ErrorMessage(err);
             }
-            Environment.Exit(0);
         }
 
         private void GetPreviousToMainPath()
@@ -219,12 +216,12 @@ namespace ComicOrganizer
                 {
                     Directory.CreateDirectory(destiny);
                 }
-                foreach (FileInfo file in source.GetFiles())
+                foreach (string file in Directory.EnumerateFiles(source.FullName))
                 {
                     MoveImage(file, destiny);
                 }
-                source.Refresh();
                 source.Delete(true);
+                source.Refresh();
                 SuccessMessage("{0} Succesfully moved to:\n{1}", source.Name, destiny);
                 SuccesCount++;
             }
@@ -244,14 +241,14 @@ namespace ComicOrganizer
             }
         }
 
-        private void MoveImage(FileInfo image, string newPath)
+        private void MoveImage(string image, string newPath)
         {
-            image.CopyTo(Path.Combine(newPath, image.Name), true);
-            image.Delete();
+            File.Copy(image, Path.Combine(newPath, Path.GetFileName(image)), true);
+            File.Delete(image);
             if (LogFiles)
             {
                 Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.WriteLine(@"Copying {0}\{1}", newPath, image.Name);
+                Console.WriteLine(@"Copying {0}\{1}", newPath, Path.GetFileName(image));
                 Console.ForegroundColor = ConsoleColor.White;
             }
         }
