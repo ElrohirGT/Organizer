@@ -19,32 +19,52 @@ namespace ComicOrganizer
         };
         string MainPath;
         bool LogFiles;
+        bool IncludePrevious;
         static Regex[] Regices =
         {
             //(C79) [Gokusaishiki (Aya Shachou)] Chikokuma Renko ~Shikomareta Chikan Kekkai~ (Touhou Project)
-            //(C79) [Gokusaishiki (Aya Shachou)] Chikokuma Renko ~Shikomareta Chikan Kekkai~ [Touhou Project]
             new Regex(@"^\(.*[^(]\) \[(.*[^(]) \((.*)\)\] (.[^(\[]*)"),
+
             //[Gokusaishiki (Aya Shachou)] Chikokuma Renko ~Shikomareta Chikan Kekkai~ [Touhou Project]
             new Regex(@"^\[(.*[^(]) \((.*)\)\] (.[^(\[]*)"),
+
             //[Aya Shachou] Chikokuma Renko ~Shikomareta Chikan Kekkai~ [Touhou Project]
             //(Aya Shachou) Chikokuma Renko ~Shikomareta Chikan Kekkai~ [Touhou Project]
             new Regex(@"^[(\[](.[^\])]*)[)\]] (.[^(\[]*)"),
         };
         DirectoryInfo[] SubDirectoryNames;
         List<string> Errors = new List<string>();
+        Dictionary<string, List<Tuple<DirectoryInfo, string>>> ComicGroups = new Dictionary<string, List<Tuple<DirectoryInfo, string>>>();
+
+        int MinNumberOfComics = 2;
+        int SuccesCount = 0;
 
         public ComicOrganizer()
         {
             Titulo();
             Console.Write("Do you want to log all files while copying? (y/n): ");
-            string a = Console.ReadLine();
+            string answer = Console.ReadLine();
+            LogFiles = answer.Equals("y");
 
-            LogFiles = a.Equals("y");
+            while (true)
+            {
+                Console.Write("What's the min number of comics for making a group/artist? (Recommended is 2): ");
+                answer = Console.ReadLine();
+                if (int.TryParse(answer, out int minNumber))
+                {
+                    MinNumberOfComics = minNumber;
+                    break;
+                }
+                ErrorMessage("Please write a valid number!");
+            }
+
+            Console.Write("Do you want to organize previous comics too? (y/n):");
+            answer = Console.ReadLine();
+            IncludePrevious = answer.Equals("y");
 
             Console.Write("Input the path: ");
-
-            string p = Console.ReadLine();
-            MainPath = Path.GetFullPath(p);
+            answer = Console.ReadLine();
+            MainPath = Path.GetFullPath(answer);
 
         }
 
@@ -61,7 +81,12 @@ namespace ComicOrganizer
         {
             try
             {
+                Environment.CurrentDirectory = "/";
                 DirectoryInfo MainDirectory = new DirectoryInfo(MainPath);
+                if (IncludePrevious)
+                {
+                    GetPreviousToMainPath();
+                }
                 SubDirectoryNames = MainDirectory.GetDirectories();
                 foreach (DirectoryInfo subDirectory in SubDirectoryNames)
                 {
@@ -73,42 +98,54 @@ namespace ComicOrganizer
                             Regex rx = Regices[i];
                             if (rx.IsMatch(subDirectory.Name))
                             {
-                                int[] idsGroup = rx.GetGroupNumbers();
-                                (string group, string artist, string name) = GetComicInfo(idsGroup, rx.Match(subDirectory.Name).Groups);
-                                string newPath = CreatePath(group, artist, name);
-
-                                SubDivision();
-
                                 Environment.CurrentDirectory = "/";
-                                try
-                                {
-                                    if (!Directory.Exists(newPath))
-                                    {
-                                        Directory.CreateDirectory(newPath);
-                                    }
+                                int[] idsGroup = rx.GetGroupNumbers();
+                                (string groupName, string artistName, string comicName) = GetComicInfo(idsGroup, rx.Match(subDirectory.Name).Groups);
+                                (string groupPath, string artistPath) = CreatePaths(groupName, artistName, comicName);
 
-                                    foreach (FileInfo image in subDirectory.GetFiles())
-                                    {
-                                        MoveImage(image, newPath);
-                                    }
-                                    subDirectory.Refresh();
-                                    subDirectory.Delete(true);
-                                    SuccessMessage("{0}: -> {1}", subDirectory.FullName, newPath);
-                                }
-                                catch (DirectoryNotFoundException ex)
-                                {
-                                    ErrorMessage("Please report this error!");
-                                    ErrorMessage(ex.Message);
-                                    ErrorMessage(ex.StackTrace);
-                                    Errors.Add($"ERROR ON: {subDirectory}");
+                                InitializeKeyIfNotExists(groupPath);
+                                InitializeKeyIfNotExists(artistPath);
 
-                                }
-                                catch (Exception ex)
+                                if (groupPath.Equals(MainPath))
                                 {
-                                    ErrorMessage("Please report this error!");
-                                    ErrorMessage(ex.Message);
-                                    ErrorMessage(ex.StackTrace);
-                                    Errors.Add($"ERROR ON: {subDirectory}");
+                                    if (Directory.Exists(artistPath))
+                                    {
+                                        MoveDirectory(subDirectory, Path.Combine(artistPath, comicName));
+                                        break;
+                                    }
+                                    ComicGroups[artistPath].Add(Tuple.Create(subDirectory, Path.Combine(artistPath, comicName)));
+                                    MoveComics(artistPath);
+                                    break;
+                                }
+
+                                string destiny = Path.Combine(groupPath, $"[{groupName} ({artistName})] {comicName}");
+                                DirectoryInfo groupDirectoryInfo = new DirectoryInfo(destiny);
+
+                                if (Directory.Exists(groupPath))
+                                {
+                                    if (Directory.Exists(artistPath))
+                                    {
+                                        MoveDirectory(subDirectory, Path.Combine(artistPath, comicName));
+                                        break;
+                                    }
+                                    MoveDirectory(subDirectory, destiny);
+
+                                    ComicGroups[artistPath].Add(Tuple.Create(groupDirectoryInfo, Path.Combine(artistPath, comicName)));
+                                    MoveComics(artistPath);
+                                    break;
+                                }
+
+                                ComicGroups[groupPath].Add(Tuple.Create(subDirectory, destiny));
+                                ComicGroups[artistPath].Add(Tuple.Create(groupDirectoryInfo, Path.Combine(artistPath, comicName)));
+
+                                if (ComicGroups[groupPath].Count == MinNumberOfComics)
+                                {
+                                    foreach (var comic in ComicGroups[groupPath])
+                                    {
+                                        MoveDirectory(comic.Item1, comic.Item2);
+                                    }
+                                    ComicGroups.Remove(groupPath);
+                                    MoveComics(artistPath);
                                 }
                                 break;
                             }
@@ -119,21 +156,90 @@ namespace ComicOrganizer
             catch (DirectoryNotFoundException)
             {
                 ErrorMessage("Sorry! Couldn't find a directory with that path");
+                ErrorMessage("TASK FINISHED");
+                return;
             }
             catch (Exception ex)
             {
-                ErrorMessage("Please report this error!");
+                ErrorMessage("Sorry an error ocurred!");
                 ErrorMessage(ex.Message);
                 ErrorMessage(ex.StackTrace);
             }
             Division();
-            Console.WriteLine("Task finished!");
-            WarningMessage("Success Rate: {0}", ((1 - (Errors.Count / ((SubDirectoryNames.Length==0)?1:SubDirectoryNames.Length))) * 100) + "");
+            SuccessMessage("TASK FINISHED!");
+            WarningMessage("Success Rate: {0}", ((1 - (Errors.Count / ((SuccesCount==0)?1:SuccesCount))) * 100) + "");
             WarningMessage("TOTAL ERROR COUNT: {0}", Errors.Count+"");
 
             foreach (var err in Errors)
             {
                 ErrorMessage(err);
+            }
+        }
+
+        private void GetPreviousToMainPath()
+        {
+            foreach (string subDirectory in Directory.EnumerateDirectories(MainPath))
+            {
+                var dirs = Directory.GetDirectories(subDirectory, "[*(*)]*");
+                foreach (var dir in dirs)
+                {
+                    string name = dir.Split(Path.PathSeparator).Last();
+                    MoveDirectory(new DirectoryInfo(dir), Path.Combine(MainPath, name));
+                }
+            }
+        }
+
+        private void InitializeKeyIfNotExists(string key)
+        {
+            if (!ComicGroups.ContainsKey(key))
+            {
+                ComicGroups.Add(key, new List<Tuple<DirectoryInfo, string>>());
+            }
+        }
+
+        private void MoveComics(string key)
+        {
+            if (ComicGroups[key].Count == MinNumberOfComics)
+            {
+                foreach (var comic in ComicGroups[key])
+                {
+                    MoveDirectory(comic.Item1, comic.Item2);
+                }
+                ComicGroups.Remove(key);
+            }
+        }
+
+        private void MoveDirectory(DirectoryInfo source, string destiny)
+        {
+            SubDivision();
+            try
+            {
+                if (!Directory.Exists(destiny))
+                {
+                    Directory.CreateDirectory(destiny);
+                }
+                foreach (FileInfo file in source.GetFiles())
+                {
+                    MoveImage(file, destiny);
+                }
+                source.Refresh();
+                source.Delete(true);
+                SuccessMessage("{0} Succesfully moved to:\n{1}", source.Name, destiny);
+                SuccesCount++;
+            }
+            catch (DirectoryNotFoundException ex)
+            {
+                ErrorMessage($"Sorry an Error ocurred trying to move the directories\n{source.FullName}\nto\n{destiny}!");
+                ErrorMessage(ex.Message);
+                ErrorMessage(ex.StackTrace);
+                Errors.Add($"ERROR ON: {source.FullName}");
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage("Sorry an error ocurred!");
+                ErrorMessage(ex.Message);
+                ErrorMessage(ex.StackTrace);
+                Errors.Add($"ERROR ON: {source.FullName}");
             }
         }
 
@@ -158,9 +264,12 @@ namespace ComicOrganizer
             return (group, artist, comicName);
         }
 
-        private string CreatePath(string group, string artist, string comicName)
+        private (string groupPath, string artistPath) CreatePaths(string group, string artist, string comicName)
         {
-            return string.Join("/", MainPath, $"(Group) {group}", $"(Artist) {artist}", comicName);
+            string gp = (string.IsNullOrEmpty(group))? MainPath : Path.Combine(MainPath, $"(Group) {group}");
+            string ap = Path.Combine(gp, $"(Artist) {artist}");
+
+            return (gp, ap);
         }
 
         public void Division()
