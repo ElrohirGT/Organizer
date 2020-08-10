@@ -178,10 +178,9 @@ namespace ComicOrganizer
         {
             foreach (string subDirectory in Directory.EnumerateDirectories(MainPath))
             {
-                var dirs = Directory.GetDirectories(subDirectory, "[*(*)]*");
-                foreach (var dir in dirs)
+                foreach (string dir in Directory.EnumerateDirectories(subDirectory, "[*(*)]*"))
                 {
-                    string name = dir.Split(Path.PathSeparator).Last();
+                    string name = Path.GetFileName(dir);
                     MoveDirectory(new DirectoryInfo(dir), Path.Combine(MainPath, name));
                 }
             }
