@@ -12,6 +12,8 @@ namespace ComicOrganizer
             Console.Title = "Organizer";
 
             new ComicOrganizer().StartProgram();
+            Console.WriteLine("Press any key to exit...");
+            Console.ReadLine();
         }
     }
 }

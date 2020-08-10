@@ -20,6 +20,8 @@ namespace ComicOrganizer
         string MainPath;
         bool LogFiles;
         bool IncludePrevious;
+        DateTime StartTime;
+        DateTime EndTime;
         static Regex[] Regices =
         {
             //(C79) [Gokusaishiki (Aya Shachou)] Chikokuma Renko ~Shikomareta Chikan Kekkai~ (Touhou Project)
@@ -61,10 +63,17 @@ namespace ComicOrganizer
             answer = Console.ReadLine();
             IncludePrevious = answer.Equals("y");
 
-            Console.Write("Input the path: ");
-            answer = Console.ReadLine();
-            MainPath = Path.GetFullPath(answer);
-
+            while (true)
+            {
+                Console.Write("Input the path (you don't need to escape it): ");
+                answer = Console.ReadLine().Trim();
+                if (Directory.Exists(answer))
+                {
+                    MainPath = Path.GetFullPath(answer);
+                    break;
+                }
+                ErrorMessage("That path doesn't exists!");
+            }
         }
 
         public void Titulo()
@@ -74,10 +83,12 @@ namespace ComicOrganizer
             Console.WriteLine(string.Join("\n", Title));
             Console.ForegroundColor = ConsoleColor.White;
             Division();
+            WarningMessage("Running version: {0}", System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
         }
 
         public void StartProgram()
         {
+            StartTime = DateTime.Now;
             try
             {
                 Environment.CurrentDirectory = "/";
@@ -151,20 +162,16 @@ namespace ComicOrganizer
                     }
                 }
             }
-            catch (DirectoryNotFoundException)
-            {
-                ErrorMessage("Sorry! Couldn't find a directory with that path");
-                ErrorMessage("TASK FINISHED");
-                return;
-            }
             catch (Exception ex)
             {
                 ErrorMessage("Sorry an error ocurred!");
                 ErrorMessage(ex.Message);
                 ErrorMessage(ex.StackTrace);
             }
+            EndTime = DateTime.Now;
             Division();
             SuccessMessage("TASK FINISHED!");
+            WarningMessage("{0} organizing directories", (EndTime-StartTime).ToString());
             WarningMessage("Success Rate: {0}", ((1 - (Errors.Count / ((SuccesCount==0)?1:SuccesCount))) * 100) + "");
             WarningMessage("TOTAL ERROR COUNT: {0}", Errors.Count+"");
 
@@ -254,9 +261,9 @@ namespace ComicOrganizer
 
         private (string group, string artist, string comicName) GetComicInfo(int[] idsGroup, GroupCollection gc)
         {
-            string artist = gc[idsGroup[idsGroup.Length - 2]]?.Value;
-            string group = gc[1].Value.Equals(artist) ? null : gc[1].Value;
-            string comicName = gc[idsGroup.Last()].Value;
+            string artist = gc[idsGroup[idsGroup.Length - 2]]?.Value.Trim();
+            string group = gc[1].Value.Equals(artist) ? null : gc[1].Value.Trim();
+            string comicName = gc[idsGroup.Last()].Value.Trim();
 
             return (group, artist, comicName);
         }
