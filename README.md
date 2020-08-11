@@ -8,14 +8,19 @@ It's an app that let's you organize your files.
 * [OSX 64](https://mega.nz/file/YZ000IIJ#1gW3XWCTzy0D_MGBnHD97kp9wnqLn9Ou8kRGYEc0q3A)
 
 ## How to use
-1. First answer the questions:
-   - If you want to log all files (all images) from each direcotry then type "y"
+1. Download the corresponding version for your Operating System and unzip the file (this can be anywhere in your machine).
+2. How to run the application:
+   - If you're on windows find the exe inside the folder and double click it.
+   - IF you're on mac, copy the folder to "Aplications" and type ComicOrganizer, it should appear a black miniature with green text, press enter.
+You can create shortcuts (windows) for the exe and move them to your desktop.
+3. First answer the questions:
+   - If you want to log all files (all images) from each directory then type "y".
    - How many comics do you want to have minimum per artist or group, the recommended quantity is 2 because that ensures that the ones that are left untouched are unique.
-   - Do you want to organize previous comics, this option should be marked "y" when it could be that some comics are already organized in their group but with not enough
+   - Do you want to organize previous comics, this option should be marked "y" when it could be that some comics are already organized in their group but with not enough.
    - The path that you want to organize, all organized comics will end up inside this path. If you are in windows just copy the path that is on the explorer, in case of mac you don't need to escape the path so if you have backslashes (\) then erase them. For example:
      - This: Users/user/Test\ Comics
      - Correct it to: Users/user/Test Comics
-2. Wait for it to complete.
+4. Wait for it to complete.
 
 ![Tutorial Mac](/githubImgs/tutorialMac.gif)
 
