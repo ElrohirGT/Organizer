@@ -3,8 +3,9 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.Collections.Generic;
+using Organizer.Utilities;
 
-namespace ComicOrganizer
+namespace Organizer
 {
     public class ComicOrganizer
     {
@@ -18,7 +19,6 @@ namespace ComicOrganizer
             "░╚════╝░╚═╝░░╚═╝░╚═════╝░╚═╝░░╚═╝╚═╝░░╚══╝╚═╝╚══════╝╚══════╝╚═╝░░╚═╝"
         };
         string MainPath;
-        bool LogFiles;
         bool IncludePrevious;
         DateTime StartTime;
         DateTime EndTime;
@@ -35,28 +35,26 @@ namespace ComicOrganizer
             new Regex(@"^[(\[](.[^\])]*)[)\]] (.[^(\[]*)"),
         };
         List<string> Errors = new List<string>();
-        Dictionary<string, List<Tuple<DirectoryInfo, string>>> ComicGroups = new Dictionary<string, List<Tuple<DirectoryInfo, string>>>();
+        Dictionary<string, List<string[]>> ComicGroups = new Dictionary<string, List<string[]>>();
 
         int MinNumberOfComics = 2;
-        int SuccesCount = 0;
+        int TotalDirectories = 0;
 
         public ComicOrganizer()
         {
             Titulo();
-            Console.Write("Do you want to log all files while copying? (y/n): ");
-            string answer = Console.ReadLine();
-            LogFiles = answer.Equals("y");
+            string answer;
 
             while (true)
             {
                 Console.Write("What's the min number of comics for making a group/artist? (Recommended is 2): ");
-                answer = Console.ReadLine();
+                answer = Console.ReadLine().Trim();
                 if (int.TryParse(answer, out int minNumber) && minNumber > 0)
                 {
                     MinNumberOfComics = minNumber;
                     break;
                 }
-                ErrorMessage("Please write a valid number!");
+                ConsoleUtilities.ErrorMessage("Please write a valid number!");
             }
 
             Console.Write("Do you want to organize previous comics too? (y/n): ");
@@ -72,18 +70,18 @@ namespace ComicOrganizer
                     MainPath = Path.GetFullPath(answer);
                     break;
                 }
-                ErrorMessage("That path doesn't exists!");
+                ConsoleUtilities.ErrorMessage("That path doesn't exists!");
             }
         }
 
         public void Titulo()
         {
-            Division();
+            ConsoleUtilities.Division(Title[0].Length);
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine(string.Join("\n", Title));
             Console.ForegroundColor = ConsoleColor.White;
-            Division();
-            WarningMessage("Running version: {0}", System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
+            ConsoleUtilities.Division(Title.Last().Length);
+            ConsoleUtilities.WarningMessage("Running version: {0}", System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
         }
 
         public void StartProgram()
@@ -92,25 +90,26 @@ namespace ComicOrganizer
             try
             {
                 Environment.CurrentDirectory = "/";
-                DirectoryInfo MainDirectory = new DirectoryInfo(MainPath);
                 if (IncludePrevious)
                 {
                     GetPreviousToMainPath();
                 }
-                foreach (DirectoryInfo subDirectory in MainDirectory.EnumerateDirectories())
+                foreach (string subDirectory in Directory.EnumerateDirectories(MainPath))
                 {
+                    string subDirectoryName = Path.GetFileName(subDirectory);
                     //If it isn't a directory with files already organized, organize it
-                    if (!new Regex(@"^\(Artist\).*|^\(Group\).*").IsMatch(subDirectory.Name))
+                    if (!new Regex(@"^\(Artist\).*|^\(Group\).*").IsMatch(subDirectoryName))
                     {
                         for (int i = 0; i < Regices.Count(); i++)
                         {
                             Regex rx = Regices[i];
-                            if (rx.IsMatch(subDirectory.Name))
+                            if (rx.IsMatch(subDirectoryName))
                             {
+                                TotalDirectories++;
                                 Environment.CurrentDirectory = "/";
                                 int[] idsGroup = rx.GetGroupNumbers();
-                                (string groupName, string artistName, string comicName) = GetComicInfo(idsGroup, rx.Match(subDirectory.Name).Groups);
-                                (string groupPath, string artistPath) = CreatePaths(groupName, artistName, comicName);
+                                (string groupName, string artistName, string comicName) = GetComicInfo(idsGroup, rx.Match(subDirectoryName).Groups);
+                                (string groupPath, string artistPath) = CreatePaths(groupName, artistName);
 
                                 InitializeKeyIfNotExists(groupPath);
                                 InitializeKeyIfNotExists(artistPath);
@@ -122,13 +121,12 @@ namespace ComicOrganizer
                                         MoveDirectory(subDirectory, Path.Combine(artistPath, comicName));
                                         break;
                                     }
-                                    ComicGroups[artistPath].Add(Tuple.Create(subDirectory, Path.Combine(artistPath, comicName)));
-                                    MoveComics(artistPath);
+                                    ComicGroups[artistPath].Add(new string[2] { subDirectory, Path.Combine(artistPath, comicName)});
+                                    MoveComicsIfEqualsMinNumberOfComics(artistPath);
                                     break;
                                 }
 
                                 string destiny = Path.Combine(groupPath, $"[{groupName} ({artistName})] {comicName}");
-                                DirectoryInfo groupDirectoryInfo = new DirectoryInfo(destiny);
 
                                 if (Directory.Exists(groupPath))
                                 {
@@ -139,22 +137,22 @@ namespace ComicOrganizer
                                     }
                                     MoveDirectory(subDirectory, destiny);
 
-                                    ComicGroups[artistPath].Add(Tuple.Create(groupDirectoryInfo, Path.Combine(artistPath, comicName)));
-                                    MoveComics(artistPath);
+                                    ComicGroups[artistPath].Add(new string[2] { destiny, Path.Combine(artistPath, comicName) });
+                                    MoveComicsIfEqualsMinNumberOfComics(artistPath);
                                     break;
                                 }
 
-                                ComicGroups[groupPath].Add(Tuple.Create(subDirectory, destiny));
-                                ComicGroups[artistPath].Add(Tuple.Create(groupDirectoryInfo, Path.Combine(artistPath, comicName)));
+                                ComicGroups[groupPath].Add(new string[2] { subDirectory, destiny });
+                                ComicGroups[artistPath].Add(new string[2] { destiny, Path.Combine(artistPath, comicName) });
 
                                 if (ComicGroups[groupPath].Count == MinNumberOfComics)
                                 {
                                     foreach (var comic in ComicGroups[groupPath])
                                     {
-                                        MoveDirectory(comic.Item1, comic.Item2);
+                                        MoveDirectory(comic[0], comic[1]);
                                     }
                                     ComicGroups.Remove(groupPath);
-                                    MoveComics(artistPath);
+                                    MoveComicsIfEqualsMinNumberOfComics(artistPath);
                                 }
                                 break;
                             }
@@ -164,20 +162,19 @@ namespace ComicOrganizer
             }
             catch (Exception ex)
             {
-                ErrorMessage("Sorry an error ocurred!");
-                ErrorMessage(ex.Message);
-                ErrorMessage(ex.StackTrace);
+                ConsoleUtilities.ErrorMessage("Sorry an error ocurred!");
+                ConsoleUtilities.ErrorMessage(ex.Message);
             }
             EndTime = DateTime.Now;
-            Division();
-            SuccessMessage("TASK FINISHED!");
-            WarningMessage("{0} organizing directories", (EndTime-StartTime).ToString());
-            WarningMessage("Success Rate: {0}", ((1 - (Errors.Count / ((SuccesCount==0)?1:SuccesCount))) * 100) + "");
-            WarningMessage("TOTAL ERROR COUNT: {0}", Errors.Count+"");
+            ConsoleUtilities.Division(Title.Last().Length);
+            ConsoleUtilities.SuccessMessage("TASK FINISHED!");
+            ConsoleUtilities.WarningMessage("{0} organizing {1} directories", (EndTime-StartTime).ToString(), ""+TotalDirectories);
+            ConsoleUtilities.WarningMessage("Success Rate: {0}", ((1 - (Errors.Count / ((TotalDirectories==0)?1:TotalDirectories))) * 100) + "");
+            ConsoleUtilities.WarningMessage("TOTAL ERROR COUNT: {0}", Errors.Count+"");
 
             foreach (var err in Errors)
             {
-                ErrorMessage(err);
+                ConsoleUtilities.ErrorMessage(err);
             }
         }
 
@@ -188,7 +185,7 @@ namespace ComicOrganizer
                 foreach (string dir in Directory.EnumerateDirectories(subDirectory, "[*(*)]*"))
                 {
                     string name = Path.GetFileName(dir);
-                    MoveDirectory(new DirectoryInfo(dir), Path.Combine(MainPath, name));
+                    MoveDirectory(dir, Path.Combine(MainPath, name));
                 }
             }
         }
@@ -197,65 +194,76 @@ namespace ComicOrganizer
         {
             if (!ComicGroups.ContainsKey(key))
             {
-                ComicGroups.Add(key, new List<Tuple<DirectoryInfo, string>>());
+                ComicGroups.Add(key, new List<string[]>());
             }
         }
 
-        private void MoveComics(string key)
+        private void MoveComicsIfEqualsMinNumberOfComics(string key)
         {
             if (ComicGroups[key].Count == MinNumberOfComics)
             {
                 foreach (var comic in ComicGroups[key])
                 {
-                    MoveDirectory(comic.Item1, comic.Item2);
+                    MoveDirectory(comic[0], comic[1]);
                 }
                 ComicGroups.Remove(key);
             }
         }
 
-        private void MoveDirectory(DirectoryInfo source, string destiny)
+        private void MoveDirectory(string source, string destiny)
         {
-            SubDivision();
+            ConsoleUtilities.SubDivision(Title.Last().Length);
+            ConsoleUtilities.WarningMessage("MOVING: {0}", source);
+            if (!Directory.Exists(destiny))
+            {
+                Directory.CreateDirectory(destiny);
+            }
+            int maxTries = 5;
+            Console.WriteLine();
+            for (int i = 0; i < maxTries; i++)
+            {
+                try
+                {
+                    int previousWidth = 0;
+                    foreach (string file in Directory.EnumerateFiles(source))
+                    {
+                        ConsoleUtilities.ClearPreviousLogImage(previousWidth);
+                        MoveImage(file, destiny, out int loggedStringWidth);
+                        previousWidth = loggedStringWidth;
+                    }
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    if (i<4)
+                    {
+                        ConsoleUtilities.WarningMessage($"An error ocurred. Trying again {i+1}/{maxTries}.");
+                        Console.WriteLine();
+                        continue;
+                    }
+                    ConsoleUtilities.ErrorMessage($"Sorry an Error ocurred trying to move the directory:\n{source}\nTo:\n{destiny}!");
+                    ConsoleUtilities.ErrorMessage(ex.Message);
+                    Errors.Add($"ERROR ON: {source}");
+                }
+            }
+            Directory.Delete(source, true);
+            ConsoleUtilities.SuccessMessage("Succesfully moved to:\n{0}", destiny);
+        }
+
+        private void MoveImage(string image, string newPath, out int loggedStringWidth)
+        {
+            loggedStringWidth = 0;
             try
             {
-                if (!Directory.Exists(destiny))
-                {
-                    Directory.CreateDirectory(destiny);
-                }
-                foreach (string file in Directory.EnumerateFiles(source.FullName))
-                {
-                    MoveImage(file, destiny);
-                }
-                source.Delete(true);
-                source.Refresh();
-                SuccessMessage("{0} Succesfully moved to:\n{1}", source.Name, destiny);
-                SuccesCount++;
-            }
-            catch (DirectoryNotFoundException ex)
-            {
-                ErrorMessage($"Sorry an Error ocurred trying to move the directories\n{source.FullName}\nto\n{destiny}!");
-                ErrorMessage(ex.Message);
-                ErrorMessage(ex.StackTrace);
-                Errors.Add($"ERROR ON: {source.FullName}");
+                ConsoleUtilities.LogImage(image, newPath, out string loggedString);
+                loggedStringWidth = loggedString.Length;
+                File.Copy(image, Path.Combine(newPath, Path.GetFileName(image)), true);
+                File.Delete(image);
             }
             catch (Exception ex)
             {
-                ErrorMessage("Sorry an error ocurred!");
-                ErrorMessage(ex.Message);
-                ErrorMessage(ex.StackTrace);
-                Errors.Add($"ERROR ON: {source.FullName}");
-            }
-        }
-
-        private void MoveImage(string image, string newPath)
-        {
-            File.Copy(image, Path.Combine(newPath, Path.GetFileName(image)), true);
-            File.Delete(image);
-            if (LogFiles)
-            {
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.WriteLine(@"Copying {0}\{1}", newPath, Path.GetFileName(image));
-                Console.ForegroundColor = ConsoleColor.White;
+                ConsoleUtilities.ErrorMessage($"Error Copying {image}");
+                throw ex;
             }
         }
 
@@ -268,45 +276,12 @@ namespace ComicOrganizer
             return (group, artist, comicName);
         }
 
-        private (string groupPath, string artistPath) CreatePaths(string group, string artist, string comicName)
+        private (string groupPath, string artistPath) CreatePaths(string group, string artist)
         {
             string gp = (string.IsNullOrEmpty(group))? MainPath : Path.Combine(MainPath, $"(Group) {group}");
             string ap = Path.Combine(gp, $"(Artist) {artist}");
 
             return (gp, ap);
-        }
-
-        public void Division()
-        {
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine(new string('=', Title.Last().Length));
-            Console.ForegroundColor = ConsoleColor.White;
-        }
-
-        public void SubDivision(string subTitle = "")
-        {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine(new string('=', Title.Last().Length));
-            Console.ForegroundColor = ConsoleColor.White;
-        }
-
-        public static void SuccessMessage(string message, params string[] args)
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine(message, args);
-            Console.ForegroundColor = ConsoleColor.White;
-        }
-        public static void WarningMessage(string message, params string[] args)
-        {
-            Console.ForegroundColor = ConsoleColor.DarkYellow;
-            Console.WriteLine(message, args);
-            Console.ForegroundColor = ConsoleColor.White;
-        }
-        public static void ErrorMessage(string message)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(message);
-            Console.ForegroundColor = ConsoleColor.White;
         }
     }
 }

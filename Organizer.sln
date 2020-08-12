@@ -1,7 +1,7 @@
 
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComicOrganizer", "ComicOrganizer\ComicOrganizer.csproj", "{363AB549-57B8-45FE-983C-0FBDFAF85184}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Organizer", "ComicOrganizer\Organizer.csproj", "{363AB549-57B8-45FE-983C-0FBDFAF85184}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,5 +13,13 @@ Global
 		{363AB549-57B8-45FE-983C-0FBDFAF85184}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{363AB549-57B8-45FE-983C-0FBDFAF85184}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{363AB549-57B8-45FE-983C-0FBDFAF85184}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		version = 2.0.0
+		Policies = $0
+		$0.DotNetNamingPolicy = $1
+		$1.DirectoryNamespaceAssociation = PrefixedHierarchical
+		$0.StandardHeader = $2
+		$0.VersionControlPolicy = $3
 	EndGlobalSection
 EndGlobal
