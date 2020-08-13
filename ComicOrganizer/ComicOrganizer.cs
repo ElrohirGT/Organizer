@@ -28,6 +28,7 @@ namespace Organizer
             new Regex(@"^\(.*[^(]\) \[(.*[^(]) \((.*)\)\] (.[^(\[]*)"),
 
             //[Gokusaishiki (Aya Shachou)] Chikokuma Renko ~Shikomareta Chikan Kekkai~ [Touhou Project]
+            //GetPreviousToDictionary uses this to add directories in group but not artist to the ComicGroups dictionary
             new Regex(@"^\[(.*[^(]) \((.*)\)\] (.[^(\[]*)"),
 
             //[Aya Shachou] Chikokuma Renko ~Shikomareta Chikan Kekkai~ [Touhou Project]
@@ -92,7 +93,7 @@ namespace Organizer
                 Environment.CurrentDirectory = "/";
                 if (IncludePrevious)
                 {
-                    GetPreviousToMainPath();
+                    GetPreviousToDictionary();
                 }
                 foreach (string subDirectory in Directory.EnumerateDirectories(MainPath))
                 {
@@ -178,14 +179,20 @@ namespace Organizer
             }
         }
 
-        private void GetPreviousToMainPath()
+        private void GetPreviousToDictionary()
         {
+            Regex rx = Regices[1];
             foreach (string subDirectory in Directory.EnumerateDirectories(MainPath))
             {
                 foreach (string dir in Directory.EnumerateDirectories(subDirectory, "[*(*)]*"))
                 {
                     string name = Path.GetFileName(dir);
-                    MoveDirectory(dir, Path.Combine(MainPath, name));
+                    int[] idsGroup = rx.GetGroupNumbers();
+                    (string groupName, string artistName, string comicName) = GetComicInfo(idsGroup, rx.Match(name).Groups);
+                    (_, string artistPath) = CreatePaths(groupName, artistName);
+
+                    InitializeKeyIfNotExists(artistPath);
+                    ComicGroups[artistPath].Add(new string[2] { dir, Path.Combine(artistPath, comicName) });
                 }
             }
         }
