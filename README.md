@@ -2,7 +2,7 @@
 It's an app that let's you organize your files.
 
 ## Download links
-*Version 2.0.0.0*
+*Version 2.1.0.0*
 * [Windows 64](https://mega.nz/file/1EEFhaIR#nQ8BqkrbI4v18Oe6ZvjM8UfN_fBE1rFSRjSxxBY9wuI)
 * [Windows 86](https://mega.nz/file/EcE1WCqD#XeSgvT0b_7NZVaKATGASi0eiwDLr3LUApaaYp5IMqN0)
 * [OSX 64](https://mega.nz/file/8YEDRABS#XSw7fmZkl7DUj0a2eY3tH7zEPOVLJ7XBXo8pQQcMaV4)

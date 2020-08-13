@@ -193,6 +193,7 @@ namespace Organizer
 
                     InitializeKeyIfNotExists(artistPath);
                     ComicGroups[artistPath].Add(new string[2] { dir, Path.Combine(artistPath, comicName) });
+                    MoveComicsIfEqualsMinNumberOfComics(artistPath);
                 }
             }
         }
