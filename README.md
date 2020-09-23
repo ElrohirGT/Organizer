@@ -2,14 +2,14 @@
 It's an app that let's you organize your files.
 
 ## Download links
-*Version 2.1.1.0*
-* [Windows 64](https://mega.nz/file/0Z8RRY7R#IlO4YR_RKGd8XF9NbRyKI_yzmPKUhuQOK1A-trPmL5A)
-* [Windows 86](https://mega.nz/file/xQ8BlCAQ#Im6DfC0vNiEdQfVIN1ziUcBvp_y9XffeewJxD75_zWI)
-* [OSX 64](https://mega.nz/file/4A0X1SSA#muiwundyFHrrnGCaA5SBSGAT2sAO15dJpUKW9UR318I)
+*Version 2.1.2.0*
+* [Windows 64](https://mega.nz/file/AQVH3KaR#CF6sinqdr6PDO2a2d5GmQ-kEtwLYdoQgy55lif4Epy8)
+* [Windows 86](https://mega.nz/file/sQMxjI5B#2paPUeiN_ZVpDEzkKDbXsDKAJGAE3rv4_k2GIbvyUj0)
+* [OSX 64](https://mega.nz/file/sVM3XIYI#pDovHA8WZEsHWpUgpJDWF8MSzyIvdii72bP6s3vB44w)
 
 ## How to use
 1. Download the corresponding version for your Operating System and unzip the file (this can be anywhere in your machine).
-2. How to run the application:
+2. To run the application:
    - If you're on windows find the exe inside the folder and double click it.
    - If you're on mac, copy the folder to "Applications" and type Organizer, it should appear a black miniature with green text, press enter.
 You can create a shortcut (windows) for the exe and move it to your desktop.
@@ -30,4 +30,3 @@ You can create a shortcut (windows) for the exe and move it to your desktop.
 
 ## What's next
 1. I'll try adding different languages, spanish is definitvely one of them.
-2. Add config files so that you can change the format in which directories are created.

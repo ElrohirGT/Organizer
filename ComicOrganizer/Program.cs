@@ -11,7 +11,7 @@ namespace Organizer
             Console.OutputEncoding = Encoding.UTF8;
             Console.Title = "Organizer";
 
-            new ComicOrganizer().StartProgram();
+            new ComicOrganizer();
             Console.WriteLine("Press enter to exit...");
             Console.ReadLine();
         }
