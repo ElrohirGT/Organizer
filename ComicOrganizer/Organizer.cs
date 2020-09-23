@@ -43,49 +43,41 @@ namespace Organizer
 
         public ComicOrganizer()
         {
-            Titulo();
-            string answer;
 
+            ConsoleUtilities.ShowTitle(Title);
+            Configure();
+            Organize();
+        }
+
+        private void Configure()
+        {
+            Console.Write("Do you want to organize previous comics to? (y/n): ");
+            IncludePrevious = Console.ReadLine().Trim().Equals("y");
             while (true)
             {
-                Console.Write("What's the min number of comics for making a group/artist? (Recommended is 2): ");
-                answer = Console.ReadLine().Trim();
-                if (int.TryParse(answer, out int minNumber) && minNumber > 0)
+                Console.Write($"{Environment.NewLine}What's the min number of comics for making a group/artist? (Recommended is 2): ");
+                string input = Console.ReadLine().Trim();
+                if (int.TryParse(input, out int minNumber))
                 {
                     MinNumberOfComics = minNumber;
                     break;
                 }
-                ConsoleUtilities.ErrorMessage("Please write a valid number!");
+                ConsoleUtilities.ErrorMessage($"{Environment.NewLine}Please write a valid number!");
             }
-
-            Console.Write("Do you want to organize previous comics too? (y/n): ");
-            answer = Console.ReadLine();
-            IncludePrevious = answer.Equals("y");
-
             while (true)
             {
-                Console.Write("Input the path (you don't need to escape it): ");
-                answer = Console.ReadLine().Trim();
-                if (Directory.Exists(answer))
+                Console.Write($"{Environment.NewLine}Input the path (if you're on mac you need to escape it before!): ");
+                string input = Console.ReadLine().Trim();
+                if (Directory.Exists(input))
                 {
-                    MainPath = Path.GetFullPath(answer);
+                    MainPath = input;
                     break;
                 }
-                ConsoleUtilities.ErrorMessage("That path doesn't exists!");
+                ConsoleUtilities.ErrorMessage($"{Environment.NewLine}Please write a valid path to a directory!");
             }
         }
 
-        public void Titulo()
-        {
-            ConsoleUtilities.Division(Title[0].Length);
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine(string.Join("\n", Title));
-            Console.ForegroundColor = ConsoleColor.White;
-            ConsoleUtilities.Division(Title.Last().Length);
-            ConsoleUtilities.WarningMessage("Running version: {0}", System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
-        }
-
-        public void StartProgram()
+        public void Organize()
         {
             StartTime = DateTime.Now;
             try
@@ -167,7 +159,7 @@ namespace Organizer
                 ConsoleUtilities.ErrorMessage(ex.Message);
             }
             EndTime = DateTime.Now;
-            ConsoleUtilities.Division(Title.Last().Length);
+            ConsoleUtilities.Division();
             ConsoleUtilities.SuccessMessage("TASK FINISHED!");
             ConsoleUtilities.WarningMessage("{0} organizing {1} directories", (EndTime-StartTime).ToString(), ""+TotalDirectories);
             ConsoleUtilities.WarningMessage("Success Rate: {0}", ((1 - (Errors.Count / ((TotalDirectories==0)?1:TotalDirectories))) * 100) + "");
@@ -178,11 +170,13 @@ namespace Organizer
                 ConsoleUtilities.ErrorMessage(err);
             }
         }
-
+        /// <summary>
+        /// Adds the previous organized comics that are not in an artist directory but are inside a group, to the dictionary to be evaluated and possibly moved to the new location.
+        /// </summary>
         private void GetPreviousToDictionary()
         {
             Regex rx = Regices[1];
-            foreach (string subDirectory in Directory.EnumerateDirectories(MainPath))
+            foreach (string subDirectory in Directory.EnumerateDirectories(MainPath, "(Group)*"))
             {
                 foreach (string dir in Directory.EnumerateDirectories(subDirectory, "[*(*)]*"))
                 {
@@ -197,7 +191,10 @@ namespace Organizer
                 }
             }
         }
-
+        /// <summary>
+        /// Initializes a <code>List<string[]> with the given key if there isn't one already.</code>
+        /// </summary>
+        /// <param name="key">The key to be checked.</param>
         private void InitializeKeyIfNotExists(string key)
         {
             if (!ComicGroups.ContainsKey(key))
@@ -205,10 +202,14 @@ namespace Organizer
                 ComicGroups.Add(key, new List<string[]>());
             }
         }
-
+        /// <summary>
+        /// Moves the comics inside the directory key if the count equal to the number of comics. In theory the count should never be
+        /// greater than <code>MinNumberOfComics</code> but just to be safe.
+        /// </summary>
+        /// <param name="key">The key of the dictionary.</param>
         private void MoveComicsIfEqualsMinNumberOfComics(string key)
         {
-            if (ComicGroups[key].Count == MinNumberOfComics)
+            if (ComicGroups[key].Count >= MinNumberOfComics)
             {
                 foreach (var comic in ComicGroups[key])
                 {
@@ -218,9 +219,14 @@ namespace Organizer
             }
         }
 
+        /// <summary>
+        /// Moves the direcotry in <paramref name="source"/> to <paramref name="destiny"/>
+        /// </summary>
+        /// <param name="source">The path of the directory to move all the files to.</param>
+        /// <param name="destiny">The path that the directory will be moved to</param>
         private void MoveDirectory(string source, string destiny)
         {
-            ConsoleUtilities.SubDivision(Title.Last().Length);
+            ConsoleUtilities.SubDivision();
             ConsoleUtilities.WarningMessage("MOVING: {0}", source);
             if (!Directory.Exists(destiny))
             {
@@ -236,8 +242,8 @@ namespace Organizer
                     foreach (string file in Directory.EnumerateFiles(source))
                     {
                         ConsoleUtilities.ClearPreviousLogImage(previousWidth);
-                        MoveImage(file, destiny, out int loggedStringWidth);
-                        previousWidth = loggedStringWidth;
+                        ConsoleUtilities.LogImage(file, destiny, out previousWidth);
+                        MoveImage(file, destiny);
                     }
                     break;
                 }
@@ -252,19 +258,22 @@ namespace Organizer
                     ConsoleUtilities.ErrorMessage($"Sorry an Error ocurred trying to move the directory:\n{source}\nTo:\n{destiny}!");
                     ConsoleUtilities.ErrorMessage(ex.Message);
                     Errors.Add($"ERROR ON: {source}");
+                    return;
                 }
             }
             Directory.Delete(source, true);
             ConsoleUtilities.SuccessMessage("Succesfully moved to:\n{0}", destiny);
         }
-
-        private void MoveImage(string image, string newPath, out int loggedStringWidth)
+        /// <summary>
+        /// Moves the <paramref name="image"/> to the specified <paramref name="newPath"/>. It doesn't have to be an image, it can be a file too.
+        /// If there's already a file in the specified path it will replace it.
+        /// </summary>
+        /// <param name="image">The path of the image to move, doesn't needs to be an image, can be any file.</param>
+        /// <param name="newPath">The path to move <paramref name="image"/></param>
+        private void MoveImage(string image, string newPath)
         {
-            loggedStringWidth = 0;
             try
             {
-                ConsoleUtilities.LogImage(image, newPath, out string loggedString);
-                loggedStringWidth = loggedString.Length;
                 File.Copy(image, Path.Combine(newPath, Path.GetFileName(image)), true);
                 File.Delete(image);
             }
@@ -274,7 +283,12 @@ namespace Organizer
                 throw ex;
             }
         }
-
+        /// <summary>
+        /// Get's the group, artist and the comic name obtained from the regex.
+        /// </summary>
+        /// <param name="idsGroup">The array of id's from the regex.</param>
+        /// <param name="gc">The group collection from the regex.</param>
+        /// <returns>A Tuple with the elements in this order: Group name (this can be null if there is no group), Artist and the Comic name, this last ones will never be null.</returns>
         private (string group, string artist, string comicName) GetComicInfo(int[] idsGroup, GroupCollection gc)
         {
             string artist = gc[idsGroup[idsGroup.Length - 2]]?.Value.Trim();
@@ -283,7 +297,12 @@ namespace Organizer
 
             return (group, artist, comicName);
         }
-
+        /// <summary>
+        /// Creates the possible paths were the comic will be moved potentially.
+        /// </summary>
+        /// <param name="group">It's the group name. This value may be null, in which case MainPath is used instead internally.</param>
+        /// <param name="artist">It's the artist name.</param>
+        /// <returns>A tuple with the path to the directory of the group (or MainPath, if <paramref name="group"/> was null or empty) and the path to the directory of the artis</returns>
         private (string groupPath, string artistPath) CreatePaths(string group, string artist)
         {
             string gp = (string.IsNullOrEmpty(group))? MainPath : Path.Combine(MainPath, $"(Group) {group}");
