@@ -55,25 +55,25 @@ namespace Organizer
             IncludePrevious = Console.ReadLine().Trim().Equals("y");
             while (true)
             {
-                Console.Write($"{Environment.NewLine}What's the min number of comics for making a group/artist? (Recommended is 2): ");
+                Console.Write("What's the min number of comics for making a group/artist? (Recommended is 2): ");
                 string input = Console.ReadLine().Trim();
                 if (int.TryParse(input, out int minNumber))
                 {
                     MinNumberOfComics = minNumber;
                     break;
                 }
-                ConsoleUtilities.ErrorMessage($"{Environment.NewLine}Please write a valid number!");
+                ConsoleUtilities.ErrorMessage("Please write a valid number!");
             }
             while (true)
             {
-                Console.Write($"{Environment.NewLine}Input the path (if you're on mac you need to escape it before!): ");
+                Console.Write("Input the path (if you're on mac you need to escape it before!): ");
                 string input = Console.ReadLine().Trim();
                 if (Directory.Exists(input))
                 {
                     MainPath = input;
                     break;
                 }
-                ConsoleUtilities.ErrorMessage($"{Environment.NewLine}Please write a valid path to a directory!");
+                ConsoleUtilities.ErrorMessage("Please write a valid path to a directory!");
             }
         }
 
