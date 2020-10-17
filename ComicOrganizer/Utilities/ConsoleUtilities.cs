@@ -220,7 +220,7 @@ namespace Organizer.Utilities
         /// <param name="width">The size of the previous logged string</param>
         public static void ClearPreviousLogImage(int width)
         {
-            int lines = (int)Math.Ceiling((decimal)(width / Console.BufferWidth)) + 1;
+            int lines = (int)Math.Floor((decimal)(width / Console.BufferWidth)) + 1;
 
             if (Console.CursorTop > lines)
             {

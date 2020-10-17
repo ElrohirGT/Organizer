@@ -98,7 +98,6 @@ namespace Organizer
                             Regex rx = Regices[i];
                             if (rx.IsMatch(subDirectoryName))
                             {
-                                TotalDirectories++;
                                 Environment.CurrentDirectory = "/";
                                 int[] idsGroup = rx.GetGroupNumbers();
                                 (string groupName, string artistName, string comicName) = GetComicInfo(idsGroup, rx.Match(subDirectoryName).Groups);
@@ -261,6 +260,7 @@ namespace Organizer
                     return;
                 }
             }
+            TotalDirectories++;
             Directory.Delete(source, true);
             ConsoleUtilities.SuccessMessage("Succesfully moved to:\n{0}", destiny);
         }
