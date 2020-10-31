@@ -12,7 +12,6 @@ It's an app that let's you organize your files.
 2. To run the application:
    - If you're on windows find the exe inside the folder and double click it.
    - If you're on mac, copy the folder to "Applications" and type Organizer, it should appear a black miniature with green text, press enter.
-You can create a shortcut (windows) for the exe and move it to your desktop.
 3. Have all your folders on the same directory and in the same level.
 4. Secondly answer the questions:
    - How many comics do you want to have minimum per artist or group, the recommended quantity is 2 because that ensures that the ones that are left untouched are unique.
@@ -25,7 +24,7 @@ You can create a shortcut (windows) for the exe and move it to your desktop.
 ![Tutorial Mac](/githubImgs/tutorialMac.gif)
 
 ## Caveats
-1. It works slowly on a external drive, it's probably because the writing speed of most flashdrives is slower than the writing speed of your computer, have patience.
+1. It works slower on a external drive, it's probably because the writing speed of most flashdrives is slower than the writing speed of your computer, have patience.
 2. Be carefull with the path that you input as your main path, remember to delete all the extra "\" and other stuff if your on mac.
 
 ## What's next
