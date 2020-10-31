@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using Organizer.Utilities;
 
 namespace Organizer
 {
@@ -11,7 +12,8 @@ namespace Organizer
             Console.OutputEncoding = Encoding.UTF8;
             Console.Title = "Organizer";
 
-            new ComicOrganizer();
+            new ComicOrganizer().StartApp().Wait();
+
             Console.WriteLine("Press enter to exit...");
             Console.ReadLine();
         }

@@ -2,10 +2,10 @@
 It's an app that let's you organize your files.
 
 ## Download links
-*Version 2.1.2.2*
-* [Windows 64](https://mega.nz/file/UM1h3QTS#rZq1TzhwxI3qvWJMxgtGAKVJC8YZCnsRfpXmpNcbnwc)
-* [Windows 86](https://mega.nz/file/kM0DBaDJ#HgzGKZKcs3ZCLEhjYylp9wqIgTEJgv9Tcp2xLKhISFQ)
-* [OSX 64](https://mega.nz/file/JVslXYAI#aS_po-4DvfASq2Fgq3tz5cpQXnomPkSfa9qClYaUa2Y)
+*Version 3.0.0.0*
+* [Windows 64](https://mega.nz/file/0M8ylZ4D#or1zkwWYvpzvlUn2lsT4-ZoC2bMEL7mp2jMy80p8QKI)
+* [Windows 86](https://mega.nz/file/FYlmhLqL#LAk0uB2Kp8Brx_7UOzSaOA-aWkQT6lBZ-dbCJSfV9x0)
+* [OSX 64](https://mega.nz/file/1ZlGARxQ#lpK4eJjSczN9e_CnWlC4ftkqBjd_Fs8-JZ5f11NAGE8)
 
 ## How to use
 1. Download the corresponding version for your Operating System and unzip the file (this can be anywhere in your machine).

@@ -191,7 +191,7 @@ namespace Organizer.Utilities
         public static void ErrorMessage(string message, params string[] args)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(message, args);
+            Console.Error.WriteLine(message, args);
             Console.ForegroundColor = ConsoleColor.White;
         }
         #endregion
