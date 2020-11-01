@@ -58,6 +58,9 @@ namespace Organizer
             return OrganizeAsync();
         }
 
+        /// <summary>
+        /// Asks the user parameters on how to organize the comics.
+        /// </summary>
         void Configure()
         {
             Console.Write("Do you want to use groups? (y/n): ");
@@ -86,6 +89,10 @@ namespace Organizer
             }
         }
 
+        /// <summary>
+        /// Starts and shows the process to organize all comics.
+        /// </summary>
+        /// <returns></returns>
         async Task OrganizeAsync()
         {
             _StartTime = DateTime.Now;
@@ -100,25 +107,10 @@ namespace Organizer
             ConsoleUtilities.WarningMessage("{0} organizing {1} directories", (_EndTime - _StartTime).ToString(), "" + _TotalDirectories);
             ConsoleUtilities.WarningMessage("Success Rate: {0}", ((1 - (_Errors.Count / ((_TotalDirectories == 0) ? 1 : _TotalDirectories))) * 100) + "");
             ConsoleUtilities.WarningMessage("TOTAL ERROR COUNT: {0}", _Errors.Count + "");
+
             foreach (var errorMessage in _Errors)
             {
                 ConsoleUtilities.ErrorMessage(errorMessage);
-            }
-        }
-
-        /// <summary>
-        /// It deletes every key whose list count is 0.
-        /// </summary>
-        void CleanDictionary()
-        {
-            string[] keys = new string[_ComicsNewPaths.Count];
-            _ComicsNewPaths.Keys.CopyTo(keys, 0);
-            for (int i = 0; i < keys.Length; i++)
-            {
-                if (_ComicsNewPaths[keys[i]].Count < _MinNumberOfComics)
-                {
-                    _ComicsNewPaths.Remove(keys[i]);
-                }
             }
         }
 
@@ -129,6 +121,7 @@ namespace Organizer
         /// </summary>
         void PopulateDictionary()
         {
+            ConsoleUtilities.InfoMessage("Scanning directories...");
             try
             {
                 Environment.CurrentDirectory = Path.GetPathRoot(Environment.SystemDirectory);
@@ -159,17 +152,17 @@ namespace Organizer
                         string groupFinalPath = Path.Combine(groupPath, comicName);
 
                         InitializeKeyIfNotExists(artistPath);
-                        if (!_DoGroups)
-                        {
-                            _ComicsNewPaths[artistPath].Add(new ComicInfo(subDirectoryPath, artistFinalPath, groupName, artistName));
+                        _ComicsNewPaths[artistPath].Add(new ComicInfo(subDirectoryPath, artistFinalPath, artistName));
+
+                        if (!_DoGroups || Directory.Exists(artistPath))
                             break;
-                        }
+
 
                         InitializeKeyIfNotExists(groupPath);
+                        _ComicsNewPaths[groupPath].Add(new ComicInfo(subDirectoryPath, groupFinalPath, artistName));
 
-                        //Adds the artis and if the count of comics of that artist is greater than the minimum required
-                        //eliminates any reference to any of the comics from the group path.
-                       _ComicsNewPaths[artistPath].Add(new ComicInfo(subDirectoryPath, artistFinalPath, groupName, artistName));
+                        //If the count of comics of that artist is greater than the minimum required
+                        //eliminates any reference to any of the comics from the group path from the same artist.
                         if (_ComicsNewPaths[artistPath].Count >= _MinNumberOfComics)
                         {
                             //Removes all references to previous comics that belonged to the same artist and group,
@@ -180,13 +173,15 @@ namespace Organizer
                             //If it entered here it means that there is no possibility of it having a groupPath.
                             break;
                         }
-                        _ComicsNewPaths[groupPath].Add(new ComicInfo(subDirectoryPath, groupFinalPath, groupName, artistName));
+                        //If it already scanned a comic we don't want it scanning it again with another regex.
+                        break;
                     }
                 }
+                ConsoleUtilities.InfoMessage("Finished!");
             }
             catch (Exception e)
             {
-                ConsoleUtilities.ErrorMessage("An error ocurred trying get info from all comics...");
+                ConsoleUtilities.ErrorMessage("An error ocurred...");
                 Console.Error.WriteLine(e.Message);
             }
         }
@@ -208,7 +203,7 @@ namespace Organizer
                     (_, string artistPath) = CreatePaths(groupName, artistName);
 
                     InitializeKeyIfNotExists(artistPath);
-                    _ComicsNewPaths[artistPath].Add(new ComicInfo(dir, Path.Combine(artistPath, comicName), groupName, artistName));
+                    _ComicsNewPaths[artistPath].Add(new ComicInfo(dir, Path.Combine(artistPath, comicName), artistName));
                 }
             }
         }
@@ -260,6 +255,24 @@ namespace Organizer
             }
 
             return (groupPath, artistPath);
+        }
+
+        /// <summary>
+        /// It deletes every key whose list count is 0. And the _MainPath key.
+        /// </summary>
+        void CleanDictionary()
+        {
+            _ComicsNewPaths.Remove(_MainPath);
+
+            string[] keys = new string[_ComicsNewPaths.Count];
+            _ComicsNewPaths.Keys.CopyTo(keys, 0);
+            for (int i = 0; i < keys.Length; i++)
+            {
+                if (!Directory.Exists(keys[i]) && _ComicsNewPaths[keys[i]].Count < _MinNumberOfComics)
+                {
+                    _ComicsNewPaths.Remove(keys[i]);
+                }
+            }
         }
 
         /// <summary>
@@ -341,165 +354,5 @@ namespace Organizer
                 throw ex;
             }
         }
-
-        #region Synchronous Code
-        //public void Organize()
-        //{
-        //    _StartTime = DateTime.Now;
-        //    try
-        //    {
-        //        Environment.CurrentDirectory = "/";
-        //        if (_DoGroups)
-        //        {
-        //            GetPreviousToDictionary();
-        //        }
-        //        foreach (string subDirectory in Directory.EnumerateDirectories(_MainPath))
-        //        {
-        //            string subDirectoryName = Path.GetFileName(subDirectory);
-        //            //If it isn't a directory with files already organized, organize it
-        //            if (!new Regex(@"^\(Artist\).*|^\(Group\).*").IsMatch(subDirectoryName))
-        //            {
-        //                for (int i = 0; i < _Regices.Count(); i++)
-        //                {
-        //                    Regex rx = _Regices[i];
-        //                    if (rx.IsMatch(subDirectoryName))
-        //                    {
-        //                        Environment.CurrentDirectory = "/";
-        //                        int[] idsGroup = rx.GetGroupNumbers();
-        //                        (string groupName, string artistName, string comicName) = GetComicInfo(idsGroup, rx.Match(subDirectoryName).Groups);
-        //                        (string groupPath, string artistPath) = CreatePaths(groupName, artistName);
-
-        //                        InitializeKeyIfNotExists(groupPath);
-        //                        InitializeKeyIfNotExists(artistPath);
-
-        //                        if (groupPath.Equals(_MainPath))
-        //                        {
-        //                            if (Directory.Exists(artistPath))
-        //                            {
-        //                                MoveDirectory(subDirectory, Path.Combine(artistPath, comicName));
-        //                                break;
-        //                            }
-        //                            _ComicsNewPaths[artistPath].Add(new string[2] { subDirectory, Path.Combine(artistPath, comicName)});
-        //                            MoveComicsIfEqualsMinNumberOfComics(artistPath);
-        //                            break;
-        //                        }
-
-        //                        string destiny = Path.Combine(groupPath, $"[{groupName} ({artistName})] {comicName}");
-
-        //                        if (Directory.Exists(groupPath))
-        //                        {
-        //                            if (Directory.Exists(artistPath))
-        //                            {
-        //                                MoveDirectory(subDirectory, Path.Combine(artistPath, comicName));
-        //                                break;
-        //                            }
-        //                            MoveDirectory(subDirectory, destiny);
-
-        //                            _ComicsNewPaths[artistPath].Add(new string[2] { destiny, Path.Combine(artistPath, comicName) });
-        //                            MoveComicsIfEqualsMinNumberOfComics(artistPath);
-        //                            break;
-        //                        }
-
-        //                        _ComicsNewPaths[groupPath].Add(new string[2] { subDirectory, destiny });
-        //                        _ComicsNewPaths[artistPath].Add(new string[2] { destiny, Path.Combine(artistPath, comicName) });
-
-        //                        if (_ComicsNewPaths[groupPath].Count == _MinNumberOfComics)
-        //                        {
-        //                            foreach (var comic in _ComicsNewPaths[groupPath])
-        //                            {
-        //                                MoveDirectory(comic[0], comic[1]);
-        //                            }
-        //                            _ComicsNewPaths.Remove(groupPath);
-        //                            MoveComicsIfEqualsMinNumberOfComics(artistPath);
-        //                        }
-        //                        break;
-        //                    }
-        //                }
-        //            }
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        ConsoleUtilities.ErrorMessage("Sorry an error ocurred!");
-        //        ConsoleUtilities.ErrorMessage(ex.Message);
-        //    }
-        //    _EndTime = DateTime.Now;
-        //    ConsoleUtilities.Division();
-        //    ConsoleUtilities.SuccessMessage("TASK FINISHED!");
-        //    ConsoleUtilities.WarningMessage("{0} organizing {1} directories", (_EndTime-_StartTime).ToString(), ""+_TotalDirectories);
-        //    ConsoleUtilities.WarningMessage("Success Rate: {0}", ((1 - (_Errors.Count / ((_TotalDirectories==0)?1:_TotalDirectories))) * 100) + "");
-        //    ConsoleUtilities.WarningMessage("TOTAL ERROR COUNT: {0}", _Errors.Count+"");
-
-        //    foreach (var err in _Errors)
-        //    {
-        //        ConsoleUtilities.ErrorMessage(err);
-        //    }
-        //}
-
-        /// <summary>
-        /// Moves the comics inside the directory key if the count equal to the number of comics. In theory the count should never be
-        /// greater than <code>MinNumberOfComics</code> but just to be safe.
-        /// </summary>
-        /// <param name="key">The key of the dictionary.</param>
-        //private void MoveComicsIfEqualsMinNumberOfComics(string key)
-        //{
-        //    if (_ComicsNewPaths[key].Count >= _MinNumberOfComics)
-        //    {
-        //        foreach (var comic in _ComicsNewPaths[key])
-        //        {
-        //            MoveDirectory(comic[0], comic[1]);
-        //        }
-        //        _ComicsNewPaths.Remove(key);
-        //    }
-        //}
-
-        /// <summary>
-        /// Moves the direcotry in <paramref name="source"/> to <paramref name="destiny"/>
-        /// </summary>
-        /// <param name="source">The path of the directory to move all the files to.</param>
-        /// <param name="destiny">The path that the directory will be moved to</param>
-        //private void MoveDirectory(string source, string destiny)
-        //{
-        //    ConsoleUtilities.SubDivision();
-        //    ConsoleUtilities.WarningMessage("MOVING: {0}", source);
-        //    if (!Directory.Exists(destiny))
-        //    {
-        //        Directory.CreateDirectory(destiny);
-        //    }
-        //    int maxTries = 5;
-        //    Console.WriteLine();
-        //    for (int i = 0; i < maxTries; i++)
-        //    {
-        //        try
-        //        {
-        //            int previousWidth = 0;
-        //            foreach (string file in Directory.EnumerateFiles(source))
-        //            {
-        //                ConsoleUtilities.ClearPreviousLogImage(previousWidth);
-        //                ConsoleUtilities.LogImage(file, destiny, out previousWidth);
-        //                MoveImage(file, destiny);
-        //            }
-        //            break;
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            if (i < 4)
-        //            {
-        //                ConsoleUtilities.WarningMessage($"An error ocurred. Trying again {i + 1}/{maxTries}.");
-        //                Console.WriteLine();
-        //                continue;
-        //            }
-        //            ConsoleUtilities.ErrorMessage($"Sorry an Error ocurred trying to move the directory:\n{source}\nTo:\n{destiny}!");
-        //            ConsoleUtilities.ErrorMessage(ex.Message);
-        //            _Errors.Add($"ERROR ON: {source}");
-        //            return;
-        //        }
-        //    }
-        //    _TotalDirectories++;
-        //    Directory.Delete(source, true);
-        //    ConsoleUtilities.SuccessMessage("Succesfully moved to:\n{0}", destiny);
-        //}
-
-        #endregion
     }
 }
