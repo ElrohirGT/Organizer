@@ -3,9 +3,9 @@ It's an app that let's you organize your files.
 
 ## Download links
 *Version 3.1.0.0*
-* [Windows 64](https://mega.nz/file/QQF3lAIa#_QsaGGiLwszKP4H490QEjer-Fv4svZDBhj6cM4U3DvQ)
-* [Windows 86](https://mega.nz/file/RMMhxCxb#-cVxL-5psGRXsXuo5omssMdCs1N7_zebx78qY9G2CJk)
-* [OSX 64](https://mega.nz/file/UNUhlQrC#zP7HUVm_Q9yPBsg5hhFmjSqg6yuLUj5DwPDgXJZPL8g)
+* [Windows 64](https://mega.nz/file/9Qs2AZJL#VPr1uo2W5vgkbXGzKQyH7W0JCdS10AIQl4BZhJW8MwQ)
+* [Windows 86](https://mega.nz/file/pR1SQBLb#1LyvCoMdLjRlEC0cQe3SIpwCmIpu-zDzNJlFcOvKMkI)
+* [OSX 64](https://mega.nz/file/RN1EFJQB#Tlb1ocODgiYxzcpjCzDbOnh4s1aMS34IAeQCBEahhfM)
 
 ## How to use
 1. Download the corresponding version for your Operating System and unzip the file (this can be anywhere in your machine).
