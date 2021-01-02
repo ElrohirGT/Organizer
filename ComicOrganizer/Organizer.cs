@@ -300,6 +300,38 @@ namespace Organizer
         /// <returns>A Task that completes when all images of the comics are moved.</returns>
         async Task MoveComic(string source, string destiny)
         {
+            //COMICS MOVING IMAGES SYNC
+            //Directory.CreateDirectory(destiny);
+            //try
+            //{
+            //    foreach (var imagePath in Directory.EnumerateFiles(source))
+            //    {
+            //        MoveImageSync(imagePath, destiny);
+            //    }
+            //    Directory.Delete(source);
+            //    ConsoleUtilities.SubDivision();
+            //    ConsoleUtilities.SuccessMessage(
+            //        "{0}{2}Moved to:{2}{1}",
+            //        source, destiny, Environment.NewLine
+            //    );
+            //    return Task.CompletedTask;
+            //}
+            //catch (Exception)
+            //{
+            //    ConsoleUtilities.SubDivision();
+            //    ConsoleUtilities.ErrorMessage(
+            //        "Sorry an error ocurred trying to copy {0}{2}to{2}{1}",
+            //        source, destiny, Environment.NewLine
+            //    );
+            //    _Errors.Add($"Error on: {source}");
+            //    return Task.CompletedTask;
+            //}
+            //finally
+            //{
+            //    _TotalDirectories++;
+            //}
+
+            //COMICS MOVING IMAGES ASYNC
             List<Task> imagesToMove = new List<Task>();
             Directory.CreateDirectory(destiny);
 
@@ -307,7 +339,7 @@ namespace Organizer
             {
                 foreach (var imagePath in Directory.EnumerateFiles(source))
                 {
-                    imagesToMove.Add(MoveImage(imagePath, destiny));
+                    imagesToMove.Add(MoveImageAsync(imagePath, destiny));
                 }
 
                 await Task.WhenAll(imagesToMove.ToArray());
@@ -340,7 +372,7 @@ namespace Organizer
         /// </summary>
         /// <param name="image">The path of the image to move, doesn't needs to be an image, can be any file.</param>
         /// <param name="newPath">The path to move <paramref name="image"/></param>
-        Task MoveImage(string image, string newPath)
+        Task MoveImageAsync(string image, string newPath)
         {
             try
             {
@@ -353,6 +385,23 @@ namespace Organizer
             {
                 throw ex;
             }
+        }
+
+        /// <summary>
+        /// Moves the <paramref name="image"/> to the specified <paramref name="newPath"/>.
+        /// It doesn't have to be an image, it can be a file too.
+        /// If there's already a file with the same name and extension in the specified path it will replace it.
+        /// </summary>
+        /// <param name="image">The path of the image to move, doesn't needs to be an image, can be any file.</param>
+        /// <param name="newPath">The path to move <paramref name="image"/></param>
+        void MoveImageSync(string image, string newPath)
+        {
+            try
+            {
+                File.Copy(image, Path.Combine(newPath, Path.GetFileName(image)), true);
+                File.Delete(image);
+            }
+            catch (Exception) { throw; }
         }
     }
 }
