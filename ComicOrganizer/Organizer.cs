@@ -3,15 +3,17 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Organizer.Utilities;
+using System.Threading;
 
 namespace Organizer
 {
     public class ComicOrganizer
     {
         #region Fields
-        string[] _Title =
+        readonly string[] _Title =
         {
             "░█████╗░██████╗░░██████╗░░█████╗░███╗░░██╗██╗███████╗███████╗██████╗░",
             "██╔══██╗██╔══██╗██╔════╝░██╔══██╗████╗░██║██║╚════██║██╔════╝██╔══██╗",
@@ -24,7 +26,7 @@ namespace Organizer
         bool _DoGroups;
         DateTime _StartTime;
         DateTime _EndTime;
-        static Regex[] _Regices =
+        static readonly Regex[] _Regices =
         {
             //(C79) [Gokusaishiki (Aya Shachou)] Chikokuma Renko ~Shikomareta Chikan Kekkai~ (Touhou Project)
             new Regex(@"^\(.*[^(]\) \[(.*[^(]) \((.*)\)\] (.[^(\[]*)"),
@@ -37,17 +39,22 @@ namespace Organizer
             //(Aya Shachou) Chikokuma Renko ~Shikomareta Chikan Kekkai~ [Touhou Project]
             new Regex(@"^[(\[](.[^\])]*)[)\]] (.[^(\[]*)"),
         };
-        static Regex _AlreadyOrganizedRegex = new Regex(@"^\(Artist\).*|^\(Group\).*");
-        List<string> _Errors = new List<string>();
+        static readonly Regex _AlreadyOrganizedRegex = new Regex(@"^\(Artist\).*|^\(Group\).*");
+        readonly BlockingCollection<string> _Errors = new BlockingCollection<string>();
 
         /// <summary>
         /// A Dictionary of comics keyed by their new path to move
         /// </summary>
-        Dictionary<string, List<ComicInfo>> _ComicsNewPaths = new Dictionary<string, List<ComicInfo>>();
+        readonly Dictionary<string, List<ComicInfo>> _ComicsNewPaths = new Dictionary<string, List<ComicInfo>>();
 
         int _MinNumberOfComics = 2;
         int _TotalDirectories = 0;
+        int threwAnException = 0;
         #endregion
+
+        float Divider => (_TotalDirectories == 0) ? 1 : _TotalDirectories;
+        float ProbabilityOfError => _Errors.Count / Divider;
+        float SuccessProbability => 1 - ProbabilityOfError;
 
         public ComicOrganizer() { }
 
@@ -105,13 +112,12 @@ namespace Organizer
             ConsoleUtilities.Division();
             ConsoleUtilities.SuccessMessage("TASK FINISHED!");
             ConsoleUtilities.WarningMessage("{0} organizing {1} directories", (_EndTime - _StartTime).ToString(), "" + _TotalDirectories);
-            ConsoleUtilities.WarningMessage("Success Rate: {0}", ((1 - (_Errors.Count / ((_TotalDirectories == 0) ? 1 : _TotalDirectories))) * 100) + "");
+
+            ConsoleUtilities.WarningMessage("Success Rate: {0}%", SuccessProbability.ToString("P2"));
             ConsoleUtilities.WarningMessage("TOTAL ERROR COUNT: {0}", _Errors.Count + "");
 
             foreach (var errorMessage in _Errors)
-            {
                 ConsoleUtilities.ErrorMessage(errorMessage);
-            }
         }
 
         /// <summary>
@@ -161,19 +167,14 @@ namespace Organizer
                         InitializeKeyIfNotExists(groupPath);
                         _ComicsNewPaths[groupPath].Add(new ComicInfo(subDirectoryPath, groupFinalPath, artistName));
 
-                        //If the count of comics of that artist is greater than the minimum required
-                        //eliminates any reference to any of the comics from the group path from the same artist.
-                        if (_ComicsNewPaths[artistPath].Count >= _MinNumberOfComics)
-                        {
-                            //Removes all references to previous comics that belonged to the same artist and group,
-                            //which makes it safe to move all comics asynchonously
-                            if (_ComicsNewPaths.TryGetValue(groupPath, out List<ComicInfo> listOfPaths))
-                                listOfPaths.RemoveAll(info => info.ArtistName.Equals(artistName));
-
-                            //If it entered here it means that there is no possibility of it having a groupPath.
+                        if (_ComicsNewPaths[artistPath].Count < _MinNumberOfComics)
                             break;
-                        }
-                        //If it already scanned a comic we don't want it scanning it again with another regex.
+
+                        //Removes all references to previous comics that belonged to the same artist and group,
+                        //which makes it safe to move all comics asynchonously
+                        if (_ComicsNewPaths.TryGetValue(groupPath, out List<ComicInfo> listOfPaths))
+                            listOfPaths.RemoveAll(info => info.ArtistName.Equals(artistName));
+
                         break;
                     }
                 }
@@ -214,9 +215,7 @@ namespace Organizer
         void InitializeKeyIfNotExists(string key)
         {
             if (!_ComicsNewPaths.ContainsKey(key))
-            {
                 _ComicsNewPaths.Add(key, new List<ComicInfo>());
-            }
         }
 
         /// <summary>
@@ -247,12 +246,10 @@ namespace Organizer
         /// and the path to the directory of the artist</returns>
         (string groupPath, string artistPath) CreatePaths(string group, string artist)
         {
-            string groupPath = (string.IsNullOrEmpty(group)) ? _MainPath : Path.Combine(_MainPath, $"(Group) {group}");
+            string groupPath = string.IsNullOrEmpty(group) ? _MainPath : Path.Combine(_MainPath, $"(Group) {group}");
             string artistPath = Path.Combine(groupPath, $"(Artist) {artist}");
             if (!_DoGroups)
-            {
                 artistPath = Path.Combine(_MainPath, $"(Artist) {artist}");
-            }
 
             return (groupPath, artistPath);
         }
@@ -266,13 +263,10 @@ namespace Organizer
 
             string[] keys = new string[_ComicsNewPaths.Count];
             _ComicsNewPaths.Keys.CopyTo(keys, 0);
+
             for (int i = 0; i < keys.Length; i++)
-            {
                 if (!Directory.Exists(keys[i]) && _ComicsNewPaths[keys[i]].Count < _MinNumberOfComics)
-                {
                     _ComicsNewPaths.Remove(keys[i]);
-                }
-            }
         }
 
         /// <summary>
@@ -282,14 +276,12 @@ namespace Organizer
         async Task MoveComics()
         {
             List<Task> comicsToMove = new List<Task>();
+
             foreach (var paths in _ComicsNewPaths.Values)
-            {
                 foreach (var comicInfo in paths)
-                {
                     comicsToMove.Add(MoveComic(comicInfo.SourcePath, comicInfo.DestinyPath));
-                }
-            }
-            await Task.WhenAll(comicsToMove.ToArray());
+
+            await Task.WhenAll(comicsToMove);
         }
 
         /// <summary>
@@ -300,49 +292,17 @@ namespace Organizer
         /// <returns>A Task that completes when all images of the comics are moved.</returns>
         async Task MoveComic(string source, string destiny)
         {
-            //COMICS MOVING IMAGES SYNC
-            //Directory.CreateDirectory(destiny);
-            //try
-            //{
-            //    foreach (var imagePath in Directory.EnumerateFiles(source))
-            //    {
-            //        MoveImageSync(imagePath, destiny);
-            //    }
-            //    Directory.Delete(source);
-            //    ConsoleUtilities.SubDivision();
-            //    ConsoleUtilities.SuccessMessage(
-            //        "{0}{2}Moved to:{2}{1}",
-            //        source, destiny, Environment.NewLine
-            //    );
-            //    return Task.CompletedTask;
-            //}
-            //catch (Exception)
-            //{
-            //    ConsoleUtilities.SubDivision();
-            //    ConsoleUtilities.ErrorMessage(
-            //        "Sorry an error ocurred trying to copy {0}{2}to{2}{1}",
-            //        source, destiny, Environment.NewLine
-            //    );
-            //    _Errors.Add($"Error on: {source}");
-            //    return Task.CompletedTask;
-            //}
-            //finally
-            //{
-            //    _TotalDirectories++;
-            //}
-
-            //COMICS MOVING IMAGES ASYNC
             List<Task> imagesToMove = new List<Task>();
             Directory.CreateDirectory(destiny);
 
             try
             {
+                PossiblyThrowAnError();
                 foreach (var imagePath in Directory.EnumerateFiles(source))
-                {
                     imagesToMove.Add(MoveImageAsync(imagePath, destiny));
-                }
 
-                await Task.WhenAll(imagesToMove.ToArray());
+                await Task.WhenAll(imagesToMove);
+
                 Directory.Delete(source);
                 ConsoleUtilities.SubDivision();
                 ConsoleUtilities.SuccessMessage(
@@ -361,7 +321,7 @@ namespace Organizer
             }
             finally
             {
-                _TotalDirectories++;
+                Interlocked.Increment(ref _TotalDirectories);
             }
         }
 
@@ -376,32 +336,21 @@ namespace Organizer
         {
             try
             {
-                //throw new Exception("Simulated Error");
                 File.Copy(image, Path.Combine(newPath, Path.GetFileName(image)), true);
                 File.Delete(image);
                 return Task.CompletedTask;
             }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
+            catch (Exception) { throw; }
         }
 
-        /// <summary>
-        /// Moves the <paramref name="image"/> to the specified <paramref name="newPath"/>.
-        /// It doesn't have to be an image, it can be a file too.
-        /// If there's already a file with the same name and extension in the specified path it will replace it.
-        /// </summary>
-        /// <param name="image">The path of the image to move, doesn't needs to be an image, can be any file.</param>
-        /// <param name="newPath">The path to move <paramref name="image"/></param>
-        void MoveImageSync(string image, string newPath)
+        private void PossiblyThrowAnError()
         {
-            try
+            if (threwAnException == 0)
             {
-                File.Copy(image, Path.Combine(newPath, Path.GetFileName(image)), true);
-                File.Delete(image);
+                Interlocked.Increment(ref threwAnException);
+                throw new Exception("Simulated Exception");
             }
-            catch (Exception) { throw; }
+            Interlocked.Decrement(ref threwAnException);
         }
     }
 }
