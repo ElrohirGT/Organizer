@@ -1,8 +1,9 @@
 # Organizer
 It's an app that let's you organize your files.
 
-##Download
+## Download
 You can see the releases a the side of the page. Download the one for your system.
+You can run the app against [this test folder](https://mega.nz/file/tYtgwDhJ#ZpsfUARG7vrlIa525g-gn0zO-RESi4m1RFVnz-U0aE4) before using it in the real one, just to get familiar with it.
 
 ## How to use
 1. Download the corresponding version for your Operating System and unzip the file (this can be anywhere in your machine).
