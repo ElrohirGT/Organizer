@@ -297,7 +297,6 @@ namespace Organizer
 
             try
             {
-                PossiblyThrowAnError();
                 foreach (var imagePath in Directory.EnumerateFiles(source))
                     imagesToMove.Add(MoveImageAsync(imagePath, destiny));
 
@@ -341,16 +340,6 @@ namespace Organizer
                 return Task.CompletedTask;
             }
             catch (Exception) { throw; }
-        }
-
-        private void PossiblyThrowAnError()
-        {
-            if (threwAnException == 0)
-            {
-                Interlocked.Increment(ref threwAnException);
-                throw new Exception("Simulated Exception");
-            }
-            Interlocked.Decrement(ref threwAnException);
         }
     }
 }

@@ -5,6 +5,8 @@
         <TargetFramework>netcoreapp3.1</TargetFramework>
         <ReleaseVersion>3.2.0.0</ReleaseVersion>
         <Version>3.2.0.0</Version>
+        <ApplicationIcon>icon.ico</ApplicationIcon>
+        <NoWin32Manifest>true</NoWin32Manifest>
     </PropertyGroup>
     <ItemGroup>
         <Folder Include="Utilities\" />
