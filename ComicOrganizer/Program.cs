@@ -14,6 +14,7 @@ namespace Organizer
 
             new ComicOrganizer().StartApp().Wait();
 
+            Console.Beep();
             Console.WriteLine("Press enter to exit...");
             Console.ReadLine();
         }

@@ -113,11 +113,12 @@ namespace Organizer
             ConsoleUtilities.SuccessMessage("TASK FINISHED!");
             ConsoleUtilities.WarningMessage("{0} organizing {1} directories", (_EndTime - _StartTime).ToString(), "" + _TotalDirectories);
 
-            ConsoleUtilities.WarningMessage("Success Rate: {0}%", SuccessProbability.ToString("P2"));
+            ConsoleUtilities.WarningMessage("Success Rate: {0}", SuccessProbability.ToString("P2"));
             ConsoleUtilities.WarningMessage("TOTAL ERROR COUNT: {0}", _Errors.Count + "");
 
             foreach (var errorMessage in _Errors)
                 ConsoleUtilities.ErrorMessage(errorMessage);
+            _Errors.Dispose();
         }
 
         /// <summary>
@@ -297,7 +298,9 @@ namespace Organizer
 
             try
             {
-                foreach (var imagePath in Directory.EnumerateFiles(source))
+                EnumerationOptions enumerationOptions = new EnumerationOptions();
+
+                foreach (var imagePath in Directory.EnumerateFiles(source, "*", enumerationOptions))
                     imagesToMove.Add(MoveImageAsync(imagePath, destiny));
 
                 await Task.WhenAll(imagesToMove);
