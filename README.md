@@ -27,3 +27,7 @@ You can run the app against [this test folder](https://mega.nz/file/tYtgwDhJ#Zps
 
 ## What's next
 1. I'll try adding different languages, spanish is definitvely one of them.
+
+## How to compile from source code
+- Install Visual Studio.
+- You can just click run on the IDE or use the cake tool to generate a build.

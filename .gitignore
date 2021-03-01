@@ -5,6 +5,7 @@
 
 *.DS_STORE
 Builds
+tools
 
 # User-specific files
 *.rsuser
